@@ -47,12 +47,12 @@ public class StudentController {
     }
 
     @DeleteMapping("{id}")
-    public Student deleteStudent(@PathVariable long id) {
-        return studentService.deleteStudent(id);
+    public void deleteStudent(@PathVariable long id) {
+        studentService.deleteStudent(id);
     }
 
-    @GetMapping("{age}")
-    public List<Student> findStudentsByAge(@PathVariable int age) {
+    @GetMapping("/age/{age}")
+    public Collection<Student> findStudentsByAge(@PathVariable int age) {
         return studentService.getStudentsByAge(age);
     }
 }
