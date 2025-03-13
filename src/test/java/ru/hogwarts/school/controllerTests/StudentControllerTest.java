@@ -1,183 +1,186 @@
 package ru.hogwarts.school.controllerTests;
 
-import org.junit.jupiter.api.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import ru.hogwarts.school.controller.StudentController;
+import ru.hogwarts.school.model.Faculty;
 import ru.hogwarts.school.model.Student;
-import ru.hogwarts.school.repository.StudentRepository;
+import ru.hogwarts.school.service.AvatarService;
+import ru.hogwarts.school.service.StudentService;
 
+import java.util.Collections;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@WebMvcTest(StudentController.class)
 public class StudentControllerTest {
 
-    @LocalServerPort
-    private int port;
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private StudentService studentService;
+
+    @MockBean
+    private AvatarService avatarService;
 
     @Autowired
-    private TestRestTemplate testRestTemplate;
+    private ObjectMapper objectMapper;
 
-    @Autowired
-    private StudentRepository studentRepository;
+    @Test
+    public void testGetAllStudents() throws Exception {
+        when(studentService.getAll()).thenReturn(Collections.emptyList());
 
-    private String getAddress() {
-        return "http://localhost:" + port + "/student";
-    }
-
-    @BeforeEach
-    public void setUp() {
-        loadTestData();
-    }
-
-    @AfterEach
-    public void resetDb() {
-        studentRepository.findAll().forEach(student -> {
-            if (student.getAvatar() != null) {
-                student.setAvatar(null);
-                studentRepository.save(student);
-            }
-        });
-        studentRepository.deleteAll();
-    }
-
-    private void loadTestData() {
-        Student student1 = new Student();
-        student1.setName("TestName1");
-        student1.setAge(20);
-
-        Student student2 = new Student();
-        student2.setName("TestName2");
-        student2.setAge(25);
-
-        studentRepository.save(student1);
-        studentRepository.save(student2);
+        mockMvc.perform(get("/student"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
     }
 
     @Test
-    public void createStudentTest() {
+    public void testFindStudent() throws Exception {
         Student student = new Student();
-        student.setName("NewStudent");
-        student.setAge(30);
+        student.setId(1L);
+        student.setName("Harry Potter");
+        student.setAge(15);
 
-        ResponseEntity<Student> response = testRestTemplate.postForEntity(
-                getAddress(),
-                student,
-                Student.class
-        );
+        when(studentService.findStudent(1L)).thenReturn(student);
 
-        assertThat(response).isNotNull();
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getName()).isEqualTo(student.getName());
-        assertThat(response.getBody().getAge()).isEqualTo(student.getAge());
+        mockMvc.perform(get("/student/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Harry Potter"))
+                .andExpect(jsonPath("$.age").value(15));
     }
 
     @Test
-    public void readStudentTest() {
-        Student student = studentRepository.findAll().iterator().next();
+    public void testFindStudentNotFound() throws Exception {
+        when(studentService.findStudent(1L)).thenReturn(null);
 
-        ResponseEntity<Student> response = testRestTemplate.getForEntity(
-                getAddress() + "/" + student.getId(),
-                Student.class
-        );
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getName()).isEqualTo(student.getName());
-        assertThat(response.getBody().getAge()).isEqualTo(student.getAge());
+        mockMvc.perform(get("/student/1"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    public void getAllStudentsTest() {
-        ResponseEntity<List<Student>> response = testRestTemplate.exchange(
-                getAddress(),
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<List<Student>>() {}
-        );
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().size()).isEqualTo(2);
-        assertThat(response.getBody().get(0).getName()).isEqualTo("TestName1");
-        assertThat(response.getBody().get(1).getName()).isEqualTo("TestName2");
-    }
-
-    @Test
-    public void updateStudentTest() {
-        Student student = studentRepository.findAll().iterator().next();
-        student.setName("UpdatedName");
-        student.setAge(25);
-
-        ResponseEntity<Student> response = testRestTemplate.exchange(
-                getAddress(),
-                HttpMethod.PUT,
-                new org.springframework.http.HttpEntity<>(student),
-                Student.class
-        );
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getName()).isEqualTo("UpdatedName");
-        assertThat(response.getBody().getAge()).isEqualTo(25);
-    }
-
-    public void deleteStudentTest() {
+    public void testAddStudent() throws Exception {
         Student student = new Student();
-        student.setName("Oleg");
-        student.setAge(1);
-        studentRepository.save(student);
+        student.setName("Hermione Granger");
+        student.setAge(15);
 
-        testRestTemplate.delete(getAddress() + "/" + student.getId());
+        when(studentService.addStudent(any(Student.class))).thenReturn(student);
 
-        ResponseEntity<String> responseGet = testRestTemplate.getForEntity(
-                getAddress() + "/" + student.getId(),
-                String.class
-        );
-
-        // Ожидаем статус 404
-        assertThat(responseGet.getStatusCode().value()).isEqualTo(404);
+        mockMvc.perform(post("/student")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(student)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Hermione Granger"))
+                .andExpect(jsonPath("$.age").value(15));
     }
 
     @Test
-    public void filterByAgeTest() {
-        ResponseEntity<List<Student>> response = testRestTemplate.exchange(
-                getAddress() + "/age/20",
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<List<Student>>() {}
-        );
+    public void testEditStudent() throws Exception {
+        Student student = new Student();
+        student.setId(1L);
+        student.setName("Ron Weasley");
+        student.setAge(16);
 
-        assertThat(response).isNotNull();
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().size()).isEqualTo(1);
-        assertThat(response.getBody().get(0).getName()).isEqualTo("TestName1");
+        when(studentService.editStudent(any(Student.class))).thenReturn(student);
+
+        mockMvc.perform(put("/student")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(student)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Ron Weasley"))
+                .andExpect(jsonPath("$.age").value(16));
     }
 
     @Test
-    public void filterByAgeRangeTest() {
-        ResponseEntity<List<Student>> response = testRestTemplate.exchange(
-                getAddress() + "/age/range?ageAfter=20&ageBefore=30",
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<List<Student>>() {}
-        );
+    public void testEditStudentNotFound() throws Exception {
+        Student student = new Student();
+        student.setId(1L);
+        student.setName("Draco Malfoy");
+        student.setAge(16);
 
-        assertThat(response).isNotNull();
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().size()).isEqualTo(2);
+        when(studentService.editStudent(any(Student.class))).thenReturn(null);
+
+        mockMvc.perform(put("/student")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(student)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testDeleteStudent() throws Exception {
+        mockMvc.perform(delete("/student/1"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testFindStudentsByAge() throws Exception {
+        Student student = new Student();
+        student.setId(1L);
+        student.setName("Neville Longbottom");
+        student.setAge(15);
+
+        when(studentService.getStudentsByAge(15)).thenReturn(List.of(student));
+
+        mockMvc.perform(get("/student/age/15"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("Neville Longbottom"))
+                .andExpect(jsonPath("$[0].age").value(15));
+    }
+
+    @Test
+    public void testFindStudentsByAgeBetween() throws Exception {
+        Student student = new Student();
+        student.setId(1L);
+        student.setName("Luna Lovegood");
+        student.setAge(14);
+
+        when(studentService.getStudentsByAgeBetween(14, 16)).thenReturn(List.of(student));
+
+        mockMvc.perform(get("/student/age/range?ageAfter=14&ageBefore=16"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("Luna Lovegood"))
+                .andExpect(jsonPath("$[0].age").value(14));
+    }
+
+    @Test
+    public void testGetFacultyOfStudent() throws Exception {
+        Faculty faculty = new Faculty();
+        faculty.setId(1L);
+        faculty.setName("Gryffindor");
+        faculty.setColor("Red");
+
+        Student student = new Student();
+        student.setId(1L);
+        student.setFaculty(faculty);
+
+        when(studentService.findStudent(1L)).thenReturn(student);
+
+        mockMvc.perform(get("/student/1/faculty"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Gryffindor"))
+                .andExpect(jsonPath("$.color").value("Red"));
+    }
+
+    @Test
+    public void testGetFacultyOfStudentNotFound() throws Exception {
+        when(studentService.findStudent(1L)).thenReturn(null);
+
+        mockMvc.perform(get("/student/1/faculty"))
+                .andExpect(status().isNotFound());
     }
 }
