@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.hogwarts.school.model.Faculty;
 import ru.hogwarts.school.model.Student;
+import ru.hogwarts.school.repository.StudentRepository;
 import ru.hogwarts.school.service.AvatarService;
 import ru.hogwarts.school.service.StudentService;
 
@@ -14,9 +15,11 @@ import java.util.Collection;
 @RequestMapping("/student")
 public class StudentController {
     private final StudentService studentService;
+    private final StudentRepository studentRepository;
 
-    public StudentController(StudentService studentService, AvatarService avatarService) {
+    public StudentController(StudentService studentService, AvatarService avatarService, StudentRepository studentRepository) {
         this.studentService = studentService;
+        this.studentRepository = studentRepository;
     }
 
     @GetMapping
@@ -31,6 +34,21 @@ public class StudentController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(student);
+    }
+
+    @GetMapping("/count")
+    public long getStudentCount() {
+        return studentRepository.getCountOfStudents();
+    }
+
+    @GetMapping("/average-age")
+    public double getAverageAge() {
+        return studentRepository.getAverageAge();
+    }
+
+    @GetMapping("last-five")
+    public Collection<Student> getLastFiveStudents() {
+        return studentRepository.findLastFiveStudents();
     }
 
     @PostMapping
