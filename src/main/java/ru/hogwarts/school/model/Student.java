@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import java.util.Objects;
 
 @Entity
+@Table(name = "student")
 public class Student {
 
     @Id
@@ -18,7 +19,7 @@ public class Student {
     private Avatar avatar;
 
     @ManyToOne
-    @JoinColumn(name = "faculty_id")
+    @JoinColumn(name = "faculty_id", nullable = true)
     private Faculty faculty;
 
     public Student(long id, String name, int age) {
