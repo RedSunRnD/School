@@ -1,6 +1,8 @@
 package ru.hogwarts.school.service;
 
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,8 @@ public class AvatarService {
     private final AvatarRepository avatarRepository;
     private final StudentService studentService;
 
+    Logger logger = LoggerFactory.getLogger(AvatarService.class);
+
     public AvatarService(AvatarRepository avatarRepository, StudentService studentService, StudentRepository studentRepository) {
         this.avatarRepository = avatarRepository;
         this.studentService = studentService;
@@ -40,6 +44,7 @@ public class AvatarService {
 
 
     public void uploadAvatar(long studentId, MultipartFile file) throws IOException {
+        logger.info("Was invoked method for upload avatar");
         Student student = studentRepository.getById(studentId);
         Path filePath = Path.of(avatarDir, student + "." + getExtensions(file.getOriginalFilename()));
         Files.createDirectories(filePath.getParent());
@@ -62,14 +67,17 @@ public class AvatarService {
     }
 
     public Avatar findAvatar(Long studentId) {
+        logger.info("Was invoked method for find avatar");
         return avatarRepository.findByStudentId(studentId).orElse(new Avatar());
     }
 
     private String getExtensions(String fileName) {
+        logger.info("Was invoked method for get file extensions");
         return fileName.substring(fileName.lastIndexOf(".") + 1);
     }
 
     private byte[] generateDataForDB(Path filePath) throws IOException {
+        logger.info("Was invoked method for generate data");
         try (
             InputStream is = Files.newInputStream(filePath);
             BufferedInputStream bis = new BufferedInputStream(is, 1024);
@@ -87,6 +95,7 @@ public class AvatarService {
 
 
     public List<Avatar> getAllPaged(int pageNumber, int pageSize) {
+        logger.info("Was invoked method for get paged list");
         PageRequest pageRequest = PageRequest.of(pageNumber - 1, pageSize);
         return avatarRepository.findAll(pageRequest).getContent();
     }
