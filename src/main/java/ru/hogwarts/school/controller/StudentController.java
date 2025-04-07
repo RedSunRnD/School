@@ -10,6 +10,9 @@ import ru.hogwarts.school.service.AvatarService;
 import ru.hogwarts.school.service.StudentService;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/student")
@@ -46,10 +49,39 @@ public class StudentController {
         return studentRepository.getAverageAge();
     }
 
-    @GetMapping("last-five")
+    @GetMapping("/last-five")
     public Collection<Student> getLastFiveStudents() {
         return studentRepository.findLastFiveStudents();
     }
+
+    @GetMapping("/names-starting-with-a")
+    public List<String> getNamesStartingWithA() {
+        return studentRepository.findAll()
+                .stream()
+                .map(Student::getName)
+                .filter(name -> name.startsWith("A"))
+                .map(String :: toUpperCase)
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/get-average-age")
+    public double getAverageAgeOfStudents() {
+        return studentRepository.findAll()
+                .stream()
+                .mapToInt(Student :: getAge)
+                .average()
+                .orElse(0);
+    }
+
+    @GetMapping("/get-sum")
+    public Long sum() {
+        return Stream.iterate(1L, a -> a + 1)
+                .limit(1000000)
+                .parallel()
+                .reduce(0L, Long::sum);
+    }
+
 
     @PostMapping
     public Student addStudent(@RequestBody Student student) {
@@ -65,7 +97,7 @@ public class StudentController {
         return ResponseEntity.ok(foundStudent);
     }
 
-    @DeleteMapping("{id}")
+    @DeleteMapping("/{id}")
     public void deleteStudent(@PathVariable long id) {
         studentService.deleteStudent(id);
     }
