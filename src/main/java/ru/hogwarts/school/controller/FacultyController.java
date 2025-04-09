@@ -41,11 +41,7 @@ public class FacultyController {
 
     @GetMapping("/longest-name")
     public String findLongestFacultyName() {
-        return facultyRepository.findAll()
-                .stream()
-                .map(Faculty :: getName)
-                .max(Comparator.comparing(String::length))
-                .orElse("No faculty found");
+        return facultyService.findLongestFacultyName();
     }
 
     @PutMapping
