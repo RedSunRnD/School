@@ -10,6 +10,9 @@ import ru.hogwarts.school.service.AvatarService;
 import ru.hogwarts.school.service.StudentService;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/student")
@@ -46,10 +49,31 @@ public class StudentController {
         return studentRepository.getAverageAge();
     }
 
-    @GetMapping("last-five")
+    @GetMapping("/last-five")
     public Collection<Student> getLastFiveStudents() {
         return studentRepository.findLastFiveStudents();
     }
+
+    @GetMapping("/names-starting-with-a")
+    public List<String> getNamesStartingWithA() {
+        return studentService.getNamesStartingWithA();
+    }
+
+    @GetMapping("/get-average-age")
+    public double getAverageAgeOfStudents() {
+        return studentService.getAverageAge();
+    }
+
+    @GetMapping("/get-sum")
+    public Long sum() {
+        return studentService.calculateSum();
+    }
+
+    @GetMapping("/sum-fastest")
+    public Long sumFastest() {
+        return studentService.sumMath();
+    }
+
 
     @PostMapping
     public Student addStudent(@RequestBody Student student) {
@@ -65,7 +89,7 @@ public class StudentController {
         return ResponseEntity.ok(foundStudent);
     }
 
-    @DeleteMapping("{id}")
+    @DeleteMapping("/{id}")
     public void deleteStudent(@PathVariable long id) {
         studentService.deleteStudent(id);
     }
