@@ -74,6 +74,18 @@ public class StudentController {
         return studentService.sumMath();
     }
 
+    @GetMapping("/print-parallel")
+    public ResponseEntity<String> printStudentNamesParallel() {
+        studentService.printNamesParallel();
+        return ResponseEntity.ok("Check console output");
+    }
+
+    @GetMapping("/print-synchronized")
+    public ResponseEntity<String> printStudentNamesSynchronized() {
+        studentService.printNamesSynchronized();
+        return ResponseEntity.ok("Check console output");
+    }
+
 
     @PostMapping
     public Student addStudent(@RequestBody Student student) {

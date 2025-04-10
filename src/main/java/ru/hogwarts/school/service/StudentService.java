@@ -45,10 +45,10 @@ public class StudentService {
         studentRepository.deleteById(id);
     }
 
-    public double getAverageAge(){
+    public double getAverageAge() {
         return studentRepository.findAll()
                 .stream()
-                .mapToInt(Student :: getAge)
+                .mapToInt(Student::getAge)
                 .average()
                 .orElse(0);
     }
@@ -58,7 +58,7 @@ public class StudentService {
                 .stream()
                 .map(Student::getName)
                 .filter(name -> name.startsWith("A"))
-                .map(String :: toUpperCase)
+                .map(String::toUpperCase)
                 .sorted()
                 .collect(Collectors.toList());
     }
@@ -83,7 +83,7 @@ public class StudentService {
         return studentRepository.findByFacultyId(facultyId);
     }
 
-    public Long calculateSumParallel(){
+    public Long calculateSumParallel() {
         return Stream.iterate(1L, a -> a + 1)
                 .limit(1000000)
                 .parallel()
@@ -101,4 +101,51 @@ public class StudentService {
         return ((long) n * (n + 1) / 2);
     }
 
+    public void printNamesParallel() {
+        List<String> studentNames = studentRepository.findAll()
+                .stream()
+                .map(Student::getName)
+                .limit(6)
+                .toList();
+
+        System.out.println(studentNames.get(0));
+        System.out.println(studentNames.get(1));
+
+        new Thread(() -> {
+            System.out.println(studentNames.get(2));
+            System.out.println(studentNames.get(3));
+        }).start();
+
+        new Thread(() -> {
+            System.out.println(studentNames.get(4));
+            System.out.println(studentNames.get(5));
+        }).start();
+    }
+
+    public void printNamesSynchronized() {
+        List<String> studentNames = studentRepository.findAll()
+                .stream()
+                .map(Student::getName)
+                .limit(6)
+                .toList();
+
+        printNames(studentNames.get(0), studentNames.get(1));
+
+        Thread thread1 = new Thread(() ->
+                printNames(studentNames.get(2), studentNames.get(3))
+        );
+
+        Thread thread2 = new Thread(() ->
+                printNames(studentNames.get(4), studentNames.get(5))
+        );
+
+        thread1.start();
+        thread2.start();
+    }
+
+    private synchronized void printNames(String name1, String name2) {
+        System.out.println(name1);
+        System.out.println(name2);
+    }
 }
+
